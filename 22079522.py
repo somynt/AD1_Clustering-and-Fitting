@@ -5,6 +5,11 @@ Created on Mon Jan 15 11:40:11 2024
 @author: LENOVO
 """
 
+
+"""
+The aim of this program is to analyse the electricity usage per capits (KWH)
+for top 5 members of High Icome Group (HIC) and Low Income Group(LIC) from World Bank dataset.
+"""
 import wbgapi as wb
 import seaborn as sns
 import pandas as pd
@@ -38,56 +43,116 @@ This section loads all the data from World bank data set using functions
 """
 #WBDataPop_GDP = ReadWorldBankData('NY.GDP.PCAP.CD', wb.income.members(
    # 'HIC'))  # Load World bank data for GDP in high Income Countries (HIC)
-WBDataPop_Transpose = ReadWorldBankData('SP.POP.TOTL', wb.income.members(
-    'HIC'))  # World bank data population of high income countries
+#WBDataPop_Transpose = ReadWorldBankData('SP.POP.TOTL', wb.income.members('HIC'))  # World bank data population of high income countries
 # Load World bank data for World GDP
 #WBDataPop_WorldGDP = ReadWorldBankData('NY.GDP.PCAP.CD')
 # World bank data for World Population
 #WBData_World_Pop = ReadWorldBankData('SP.POP.TOTL')
 
+WBData_Ele_HIC = ReadWorldBankData('EG.USE.ELEC.KH.PC', wb.income.members('HIC'))
+WBData_Ele_LIC = ReadWorldBankData('EG.USE.ELEC.KH.PC', wb.income.members('LIC'))
+
+
+
+
 """
 In the following section data is cleaned before setting the dataframe for analysis.
 """
+"""
+First the high income countries are cleaned (HIC)
+"""
+WBData_Ele_HIC.index.name ='Year' # Give a name Year to the index, since it is year column by default
+WBData_Ele_HIC_Clean_R = WBData_Ele_HIC.dropna(how='all', axis=0, inplace=False)
+WBData_Ele_HIC_Clean_C = WBData_Ele_HIC_Clean_R.dropna(how='all', axis=1, inplace=False)
+
+
+#print(WBData_Ele_HIC)
+#print(WBData_Ele_HIC_Clean_R)
+#print(WBData_Ele_HIC_Clean_C)
+
+
+"""
+Same steps repeated for low income countries data 
+
+"""
+WBData_Ele_LIC.index.name ='Year' # Give a name Year to the index, since it is year column by default
+WBData_Ele_LIC_Clean_R = WBData_Ele_LIC.dropna(how='all', axis=0, inplace=False)
+WBData_Ele_LIC_Clean_C = WBData_Ele_LIC_Clean_R.dropna(how='all', axis=1, inplace=False)
+
+
+#print(WBData_Ele_LIC)
+#print(WBData_Ele_LIC_Clean_R)
+#print(WBData_Ele_LIC_Clean_C)
+"""
+HIC - After cleaning out of 63 rows X 82 Columns only 55 rows were left with 'axis=0' and reduced to 55 rows X 52 columns at axis =1.
+LIC- After cleanng we are left with 44 rows X 11 columns
+In the following section both datasets are trasposed to reveal the country name in the index
+"""
+
+WBData_Ele_HIC_Clean_C = WBData_Ele_HIC_Clean_C.reset_index() # Index reset to use the Year column
+WBData_Ele_HIC_Clean_Countries= WBData_Ele_HIC_Clean_C.set_index('Year').T.rename_axis('Countries').rename_axis(None,axis=1)
+
+#print(WBData_Ele_HIC_Clean_Countries.head())
+
+WBData_Ele_LIC_Clean_C = WBData_Ele_LIC_Clean_C.reset_index() # Index reset to use the Year column
+WBData_Ele_LIC_Clean_Countries= WBData_Ele_LIC_Clean_C.set_index('Year').T.rename_axis('Countries').rename_axis(None,axis=1)
+
+#print(WBData_Ele_LIC_Clean_Countries.head())
+
+
+"""
+The above step revelaed need for further cleaning since some of the data are missing for certain years
+This will only be carried out after filtering required countries from both HIC and LIC.
+"""
+
+
+
+"""
+Year_DF_ResetIndex = WBDataPop_Transpose.reset_index() # Index reset to use the Year column
+Countries_DF= Year_DF_ResetIndex.set_index('Year').T.rename_axis('Countries').rename_axis(None,axis=1)
 
 WBDataPop_Transpose.index.name = 'Year'
+"""
 
+"""
 I = WBDataPop_Transpose #Indexed with name 'Year'
 Year_DF_ResetIndex = WBDataPop_Transpose.reset_index() # Index reset to use the Year column
 Countries_DF= Year_DF_ResetIndex.set_index('Year').T.rename_axis('Countries').rename_axis(None,axis=1) # Year_DF transposed to create \
-
+"""
 """ 
 new dataframe country_Df. This replaces the year in index and now country is the index.
 """
-Countries_DF_ResetIndex = Countries_DF.reset_index() # Reset the 
+#Countries_DF_ResetIndex = Countries_DF.reset_index() # Reset the 
 
-Countries_DF ['Mean'] = Countries_DF.mean(axis=1)
-Countries_DF_Sorted = Countries_DF.sort_values(by='Mean', ascending=False)
+#Countries_DF ['Mean'] = Countries_DF.mean(axis=1)
+#Countries_DF_Sorted = Countries_DF.sort_values(by='Mean', ascending=False)
 """
 row_labels = Countries_DF_Sorted.index.tolist()
 print(row_labels)
 """
-Countries_DF_New = Countries_DF_Sorted.filter(['USA', 'JPN', 'DEU', 'GBR', 'FRA', 'ITA', 'KOR', 'ESP', 'POL', 'CAN'], axis=0)
-Countries_DF_New = Countries_DF_New.drop('Mean', axis=1)
+#Countries_DF_New = Countries_DF_Sorted.filter(['USA', 'JPN', 'DEU', 'GBR', 'FRA', 'ITA', 'KOR', 'ESP', 'POL', 'CAN'], axis=0)
+#Countries_DF_New = Countries_DF_New.drop('Mean', axis=1)
 
 """
 Drop both row and columns based on missing values. 
 This returned same number of columns since there is no missing values 
 """
-Countries_DF_New_Clean = Countries_DF_New.dropna(how='any', axis=0, inplace=False)
+#Countries_DF_New_Clean = Countries_DF_New.dropna(how='any', axis=0, inplace=False)
+"""
 
 
 
-
-
+"""
 """
 
 Clustering Preparation: Initially scale each value to mean 0 and standard deviation 1
-
+"""
 """
 
 
 
-print(Countries_DF_New_Clean.head())
+#print(Countries_DF_New_Clean.head())
+"""
 """
 WBDataPop_Transpose_sorted = (WBDataPop_Transpose.sort_values(by=['YR1960', 'YR1961', 'YR1962', 'YR1963', 'YR1964', 'YR1965', 'YR1966',
                                                                   'YR1967', 'YR1968', 'YR1969', 'YR1970', 'YR1971', 'YR1972', 'YR1973',
@@ -101,7 +166,3 @@ WBDataPop_Transpose_sorted = (WBDataPop_Transpose.sort_values(by=['YR1960', 'YR1
                                                                 'YR2018', 'YR2019'], ascending=False, axis=1))
 
 """
-
-
-
-
