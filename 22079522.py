@@ -1,14 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Jan 17 19:18:22 2024
+Created on Sat Jan 20 12:44:33 2024
 
 @author: LENOVO
 """
 
-"""
-The aim of this program is to analyse the electricity usage per capits (KWH)
-for top 5 members of High Icome Group (HIC) and Low Income Group(LIC) from World Bank dataset.
-"""
 import wbgapi as wb
 import seaborn as sns
 import pandas as pd
@@ -25,6 +21,7 @@ from sklearn.datasets import load_digits
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
+import plotly.express as px
 
 def ReadWorldBankData (*args):  # Function definition
     '''
@@ -82,8 +79,18 @@ def Countryset_Cleaned (df):
 Calling the Countryset_cleaned to clean the downloaded dataset
 It accepts a dataframe as argument and returns a dataframe.
 """
+
 HIC_C = Countryset_Cleaned(WBData_Ele_HIC)
 LIC_C = Countryset_Cleaned(WBData_Ele_HIC)
+
+"""
+HIC_C = HIC_C.reset_index()
+HIC_C['Year'] = HIC_C['Year'].str.extract(r'YR(\d{4})')
+HIC_C ['Year'] = pd.to_datetime(HIC_C ['Year'])
+HIC_C ['Year'] = HIC_C ['Year'].dt.year
+HIC_C.set_index('Year', inplace=True)
+"""
+
 #HIC_GDP_C = Countryset_Cleaned(WBDataP_GDP_HIC)
 #LIC_GDP_C = Countryset_Cleaned(WBData_GDP_LIC)
 
@@ -91,55 +98,50 @@ LIC_C = Countryset_Cleaned(WBData_Ele_HIC)
 #Combined_df_GDP = pd.merge(HIC_GDP_C, LIC_GDP_C, on = 'Year')# Merging similar type datasets with GDP
 
 def TransposeDF (df):
-    """
+  """
     This function traspose the given data set and rename the columns (eg:countries)
-    It accepts a dataframe as argument and returns a dataframe.
-    """
+  """
     
-    df.reset_index()
-    df_T= df.T.rename_axis('Countries').rename_axis(columns =None).reset_index()
-    df_T = df_T.set_index('Countries')
+  df.reset_index()
+  df_T= df.T.rename_axis('Countries').rename_axis(columns =None).reset_index()
+  df_T = df_T.set_index('Countries')
 
-    return df_T
+  return df_T
 
-rr = TransposeDF(HIC_C)
-
-
-
-#Combined_df_T = TransposeDF (Combined_df)
-#Combined_df_T['AverageElecperCapita'] = round(Combined_df_T.mean(axis=1),2)
-#Combined_df_T_Average = Combined_df_T.drop(Combined_df_T.loc[:,"YR1990":"YR2014"], axis=1)
-
-#
-
-#sns.lmplot(x = HIC_C.index, y = 'AverageElecperCapita', data = HIC_C)
-#print (RI.head())
-
-#sns.lmplot(x = 'Countries', y = 'Year', markers = ["s", "x"], palette = "Set2",data = Combined_df)
-
-#Combined_df_GDP_T = TransposeDF(Combined_df_GDP)
-#Combined_df_GDP_T_R= Combined_df_GDP_T.dropna(how='all', axis=1, inplace=False)
-#Combined_df_GDP_T= Combined_df_GDP_T_R.dropna(how='any', axis=0, inplace=False)
-
-#Combined_df_T['AverageElecperCapita'] = Combined_df_T.mean(axis=1)
-#Combined_df_GDP_T['AverageGDP'] = Combined_df_GDP_T.mean(axis=1)
+Transpose_1990 = TransposeDF(HIC_C)
+#Transpose_1990  = Transpose_1990.reset_index()
 
 
-#Combined_df_T_Average = Combined_df_T.drop(Combined_df_T.loc[:,"YR1960":"YR2014"], axis=1)
-#Combined_df_GDP_T_Average = Combined_df_GDP_T.drop(Combined_df_GDP_T.loc[:,"YR1960":"YR2022"], axis=1)
+HIC_1990_2014 = Transpose_1990.loc[:,['YR1990', 'YR2014']]
+#HIC_1990_2014['Countries'] = HIC_1990_2014['Countries'].astype('string')
 
-#Combine_Average_both = pd.merge(Combined_df_T_Average,Combined_df_GDP_T_Average, on= 'Countries' )
-
-#print(Combined_df_T_Average.head())
-#print(Combined_df_GDP_T_Average.head())
-
-#print(Combined_df_T)
-
-scaled_df = StandardScaler().fit_transform(rr)
 
 """
-#===========================
-kmeans_kwargs = {
+S = sns.scatterplot (x = 'YR1990', y = 'YR2014' , hue = 'Countries', data = HIC_1990_2014)
+S.legend_.remove()
+
+
+
+#Transpose_1990['Countrycode'] = Transpose_1990.index
+#print(HIC_1990_2014)
+
+
+#scaled_df = StandardScaler().fit_transform(HIC_1990_2014)
+
+
+
+#===============================================================
+
+
+#HIC_1990_2014= HIC_1990_2014.set_index('Countries')
+"""
+scaler = StandardScaler()
+#Temp_scaled = pd.DataFrame(scaler.fit_transform(HIC_1990_2014), columns=HIC_1990_2014.columns)
+Temp_scaled = scaler.fit_transform(HIC_1990_2014)
+
+
+"""
+kmeans_init = {
 "init": "random",
 "n_init": 10,
 "random_state": 1,
@@ -148,8 +150,8 @@ kmeans_kwargs = {
 #create list to hold SSE values for each k
 sse = []
 for k in range(1, 11):
-    kmeans = KMeans(n_clusters=k, **kmeans_kwargs)
-    kmeans.fit(scaled_df)
+    kmeans = KMeans(n_clusters=k, **kmeans_init)
+    kmeans.fit(Temp_scaled)
     sse.append(kmeans.inertia_)
 
 #visualize results
@@ -158,20 +160,18 @@ plt.xticks(range(1, 11))
 plt.xlabel("Number of Clusters")
 plt.ylabel("SSE")
 plt.show()
-#========================================
-"""
-"""
-"""
 
+#===================================================
+"""
 #ORIGINAL
 
 
 #Initialize the class object
 
-kmeans = KMeans(n_clusters= 4)
+kmeans = KMeans(n_clusters= 5)
  
 #predict the labels of clusters.
-label = kmeans.fit_predict(scaled_df)
+label = kmeans.fit_predict(Temp_scaled)
 
 
 #Getting unique labels
@@ -179,33 +179,31 @@ label = kmeans.fit_predict(scaled_df)
 centroids = kmeans.cluster_centers_
 u_labels = np.unique(label)
 
-def create_dataframe(centroids):
-    """
-    Create a DataFrame from centroids.
-
-    Parameters:
-    - centroids: 2D NumPy array representing the centroids.
-
-    Returns:
-    - DataFrame with columns 'C1', 'C2', 'C3', 'C4' etc..
-    """
-    columns = [f'C{i+1}' for i in range(centroids.shape[1])]
-    centroids_df = pd.DataFrame({col: centroids[:, i] for i, col in enumerate(columns)})
-    return centroids_df
-
-centroidsdf = create_dataframe(centroids)
-scaled_df_df = create_dataframe (scaled_df)
-#labeldf = create_dataframe (label)
-labeldf = pd.DataFrame(data=label, columns = ['Clusters'])
-print(labeldf)
 for i in u_labels:
-    plt.scatter(scaled_df[label == i , 0] , scaled_df[label == i , 1] , label = i)
+    plt.scatter(Temp_scaled[label == i , 0] , Temp_scaled[label == i , 1] , label = i)
 plt.scatter(centroids[:,0] , centroids[:,1] , s = 80, color = 'k')
-
 plt.legend()
 plt.show()
+#============================================================================
+
+Temp_scaled = pd.DataFrame(scaler.fit_transform(HIC_1990_2014), columns=HIC_1990_2014.columns)
+HIC_1990_2014['label'] = kmeans.fit_predict(Temp_scaled[['YR1990', 'YR2014']])
+
+# get centroids
+centroids2 = scaler.inverse_transform(kmeans.cluster_centers_)
+cen_x = [i[0] for i in centroids2]
+cen_y = [i[1] for i in centroids2]
+
+ax = sns.scatterplot(x='YR1990', y='YR2014', hue='label',
+                     data=HIC_1990_2014, palette='colorblind',
+                     legend='full')
 
 
-#Combined_df['Average'] = Combined_df.mean(axis=1)
-#print(Combined_df.head())
+HIC_1990_2014 = HIC_1990_2014.reset_index()
+ax = sns.scatterplot(HIC_1990_2014, x="YR1990", y="YR2014", size='YR2014', hue= HIC_1990_2014['label'], palette="seismic")
+
+sns.scatterplot(x=cen_x, y=cen_y, s=100, color='black', marker ='x', ax=ax)
+ax.legend_.remove()
+plt.tight_layout()
+plt.show()
 
