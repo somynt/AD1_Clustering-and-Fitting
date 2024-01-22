@@ -2,7 +2,7 @@
 """
 Created on Sat Jan 20 12:44:33 2024
 
-@author: LENOVO
+
 """
 
 """
@@ -13,6 +13,10 @@ drawn from World bank dataset.
 """
 
 # Loading the required modules
+
+
+
+
 import wbgapi as wb
 import seaborn as sns
 import pandas as pd
@@ -21,6 +25,8 @@ import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LinearRegression
+from tabulate import tabulate
+
 
 
 def ReadWorldBankData(*args):  # Function definition
@@ -68,7 +74,7 @@ def Countryset_Cleaned(df):
     df.index.name = 'Year'  # Give a name Year to the index, since it is year column by default
     df_Clean_R = df.dropna(how='all', axis=0, inplace=False)
     df_Clean_C = df_Clean_R.dropna(how='all', axis=1, inplace=False)
-    #removed all rows with null values.
+    # removed all rows with null values.
     df_Clean_C = df_Clean_C.dropna(how='any', axis=0, inplace=False)
     # If there is any null values corresponding column is removed
     return df_Clean_C
@@ -80,7 +86,39 @@ It accepts a dataframe as argument and returns a dataframe.
 """
 
 HIC_C = Countryset_Cleaned(WBData_Ele_HIC)
-# Applied the Countryset_Cleanedfunction on the HIC data set. 
+# Applied the Countryset_Cleanedfunction on the HIC data set.
+
+"""
+The following section makes the prediction for various countries 
+for the years 2021, 2022,2023, depending on which countru is selected
+
+"""
+
+HIC_C_Pred = HIC_C.iloc[:, 0:53].reset_index()
+
+HIC_C_Pred['Year'] = HIC_C_Pred['Year'].str.extract(r'YR(\d{4})')
+HIC_C_Pred['Year'] = pd.to_datetime(HIC_C_Pred['Year'])
+HIC_C_Pred['Year'] = HIC_C_Pred['Year'].dt.year
+
+
+y = HIC_C_Pred['USA']
+
+X = HIC_C_Pred[['Year']]
+
+
+# Train the model
+model = LinearRegression()
+model.fit(X, y)
+
+# Predict values for 2021, 2022, and 2023
+future_years = [2021, 2022, 2023]
+future_data = pd.DataFrame({
+    'Year': future_years
+})
+
+# Predict future values
+future_data['Predicted_USA'] = model.predict(future_data[['Year']])
+print(future_data)
 
 
 def TransposeDF(df):
@@ -105,7 +143,7 @@ The dataset is now filtered down to Year1990-Year2014 avoiding Null values.
 This step was required since auto filteration with 'all' or 'any' removes
 almost all data from the dataset. 
 """
-#===================================================
+# ===================================================
 
 """
 In this section onwards we are starting the clustering process. To do this
@@ -115,7 +153,7 @@ analytical frame.
 """
 
 scaler = StandardScaler()
-Temp_scaled = pd.DataFrame(scaler.fit_transform(HIC_1990_2014),\
+Temp_scaled = pd.DataFrame(scaler.fit_transform(HIC_1990_2014),
                            columns=HIC_1990_2014.columns)
 Temp_scaled = scaler.fit_transform(HIC_1990_2014)
 
@@ -148,7 +186,7 @@ plt.xlabel("Number of Clusters")
 plt.ylabel("SSE")
 plt.title('Figure.1::Elbow plot for cluster identification')
 plt.savefig('Number_Of_Clusters.png', bbox_inches="tight", dpi=300)
-plt.clf()#The plot is cleared so that it does not overlap with next plot
+plt.clf()  # The plot is cleared so that it does not overlap with next plot
 
 # ===================================================
 
@@ -186,7 +224,7 @@ plt.ylabel('YR2014')
 plt.legend()
 plt.savefig('Regression plot for each cluster.png',
             bbox_inches="tight", dpi=300)
-plt.clf()#The plot is cleared so that it does not overlap with next plot
+plt.clf()  # The plot is cleared so that it does not overlap with next plot
 # ======================================================
 
 # Getting unique labels
@@ -195,8 +233,8 @@ centroids = kmeans.cluster_centers_
 u_labels = np.unique(label)
 
 for i in u_labels:
-   ax2 = plt.scatter(Temp_scaled[label == i, 0],
-                Temp_scaled[label == i, 1], label=i)
+    ax2 = plt.scatter(Temp_scaled[label == i, 0],
+                      Temp_scaled[label == i, 1], label=i)
 plt.scatter(centroids[:, 0], centroids[:, 1], s=80, color='k')
 plt.title('Figure.2::Centroids plot')
 plt.savefig('Plotting the centroids.png',
@@ -219,27 +257,65 @@ centroids2 = scaler.inverse_transform(kmeans.cluster_centers_)
 cen_x = [i[0] for i in centroids2]
 cen_y = [i[1] for i in centroids2]
 
-ax3 = sns.scatterplot(x='YR1990', y='YR2014', hue='label',data=HIC_1990_2014, palette='colorblind',
-                     legend='full')
+ax3 = sns.scatterplot(x='YR1990', y='YR2014', hue='label', data=HIC_1990_2014, palette='colorblind',
+                      legend='full')
 
 HIC_1990_2014 = HIC_1990_2014.reset_index()
 
-#Plotting the original dataset. 
+# Plotting the original dataset.
 
 ax = sns.scatterplot(HIC_1990_2014, x="YR1990", y="YR2014",
-                    size='YR2014', hue=HIC_1990_2014['label'], palette="seismic")
+                     size='YR2014', hue=HIC_1990_2014['label'], palette="seismic")
 
-#Plotting the centroids on the selected clusters. 
+# Plotting the centroids on the selected clusters.
 sns.scatterplot(x=cen_x, y=cen_y, s=100, color='black', ax=ax)
 
-# Regression plot on the identified clusters. 
+# Regression plot on the identified clusters.
 sns.regplot(HIC_1990_2014, x="YR1990", y="YR2014", scatter_kws={
             "color": "black", "alpha": 0.3}, line_kws={"color": "red"}, ci=99)
 ax.legend_.remove()
 
-plt.title("Figure.4:: Plotting the regression line over the full data set with error band.") 
+plt.title(
+    "Figure.4:: Plotting the regression line over the full data set with error band.")
 
 plt.tight_layout()
 plt.savefig('Regression plot with error bands on original data set.png',
+            bbox_inches="tight", dpi=300)
+plt.clf()
+
+"""
+Here, two tables reprsenting the top and bottom 10 countries based on 
+energy per capita are selected and saved as an image
+
+"""
+
+Transpose_1990_Sorted = Transpose_1990.sort_values(
+    by=['YR2014'], ascending=False)
+Transpose_1990_Sorted_Filter = Transpose_1990_Sorted.filter(
+    ['Countries', 'YR2014'])
+Top10 = Transpose_1990_Sorted_Filter.head(10)
+Bottom10 = Transpose_1990_Sorted_Filter.tail(10)
+
+
+# Plotting Top10 and Bottom10 side by side
+fig, axs = plt.subplots(1, 2, figsize=(12, 4))  # 1 row, 2 columns
+
+# Plotting Top10
+axs[0].set_title('Top 10 Data')
+axs[0].axis('off')  # Turn off axis for cleaner look
+axs[0].text(0.1, 0.9, tabulate(Top10, headers='keys',
+            tablefmt='fancy_grid'), va='top')
+
+# Plotting Bottom10
+axs[1].set_title('Bottom 10 Data')
+axs[1].axis('off')  # Turn off axis for cleaner look
+axs[1].text(0.1, 0.9, tabulate(Bottom10, headers='keys',
+            tablefmt='fancy_grid'), va='top')
+
+# Adjust layout for better spacing
+plt.tight_layout()
+
+# Show the plot
+plt.savefig('Tables.png',
             bbox_inches="tight", dpi=300)
 plt.clf()
